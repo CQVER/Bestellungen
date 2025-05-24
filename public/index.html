@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Ordering System</title>
     <style>
-        * {
+       * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -402,10 +402,8 @@
 </head>
 <body>
     <div id="status" class="status"></div>
-    
     <div class="container">
         <h1>🍕 Food Ordering System</h1>
-        
         <div class="section">
             <h2>Add People</h2>
             <div class="input-group">
@@ -413,7 +411,6 @@
                 <button onclick="addPerson()">Add Person</button>
             </div>
         </div>
-
         <div class="section">
             <h2>Add Food Items</h2>
             <div class="input-group">
@@ -422,7 +419,6 @@
                 <button onclick="addFood()">Add Food</button>
             </div>
         </div>
-
         <div class="main-content">
             <div class="section">
                 <h2>Available Food</h2>
@@ -430,7 +426,6 @@
                     <div class="empty-state">No food items available</div>
                 </div>
             </div>
-
             <div class="section">
                 <h2>People & Orders</h2>
                 <div id="peopleGrid" class="people-grid">
@@ -439,27 +434,18 @@
             </div>
         </div>
     </div>
-
     <script>
         let people = [];
         let foodItems = [];
         let draggedFood = null;
 
-        // API functions
         async function apiCall(url, options = {}) {
             try {
                 const response = await fetch(url, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
+                    headers: { 'Content-Type': 'application/json', ...options.headers },
                     ...options
                 });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return await response.json();
             } catch (error) {
                 console.error('API call failed:', error);
@@ -469,16 +455,15 @@
         }
 
         async function loadData() {
+            showStatus('Loading data...');
             try {
-                showStatus('Loading data...');
                 const data = await apiCall('/api/data');
                 people = data.people || [];
                 foodItems = data.foodItems || [];
                 renderFood();
                 renderPeople();
                 showStatus('Data loaded');
-            } catch (error) {
-                console.error('Failed to load data:', error);
+            } catch {
                 showStatus('Failed to load data', true);
             }
         }
@@ -486,24 +471,15 @@
         async function addPerson() {
             const nameInput = document.getElementById('personName');
             const name = nameInput.value.trim();
-            
-            if (!name) {
-                showStatus('Please enter a name', true);
-                return;
-            }
-            
+            if (!name) return showStatus('Please enter a name', true);
             try {
-                const result = await apiCall('/api/people', {
-                    method: 'POST',
-                    body: JSON.stringify({ name })
-                });
-                
+                const result = await apiCall('/api/people', { method: 'POST', body: JSON.stringify({ name }) });
                 people = result.data.people;
                 foodItems = result.data.foodItems;
                 nameInput.value = '';
                 renderPeople();
                 showStatus('Person added');
-            } catch (error) {
+            } catch {
                 showStatus('Failed to add person', true);
             }
         }
@@ -513,266 +489,132 @@
             const quantityInput = document.getElementById('foodQuantity');
             const name = nameInput.value.trim();
             const quantity = parseInt(quantityInput.value);
-            
-            if (!name || quantity <= 0) {
-                showStatus('Please enter valid food details', true);
-                return;
-            }
-            
+            if (!name || quantity <= 0) return showStatus('Please enter valid food details', true);
             try {
-                const result = await apiCall('/api/food', {
-                    method: 'POST',
-                    body: JSON.stringify({ name, quantity })
-                });
-                
+                const result = await apiCall('/api/food', { method: 'POST', body: JSON.stringify({ name, quantity }) });
                 people = result.data.people;
                 foodItems = result.data.foodItems;
                 nameInput.value = '';
                 quantityInput.value = '1';
                 renderFood();
                 showStatus('Food added');
-            } catch (error) {
+            } catch {
                 showStatus('Failed to add food', true);
             }
         }
 
         async function deleteFood(foodName) {
-            const foodInOrders = people.some(person => 
-                Object.keys(person.orders).includes(foodName)
-            );
-            
-            if (foodInOrders) {
-                if (!confirm(`${foodName} is in orders. Remove from all orders?`)) {
-                    return;
-                }
-            }
-            
+            const inOrders = people.some(p => p.orders[foodName]);
+            if (inOrders && !confirm(`${foodName} is in orders. Remove from all orders?`)) return;
             try {
-                const result = await apiCall(`/api/food/${encodeURIComponent(foodName)}`, {
-                    method: 'DELETE'
-                });
-                
+                const result = await apiCall(`/api/food/${encodeURIComponent(foodName)}`, { method: 'DELETE' });
                 people = result.data.people;
                 foodItems = result.data.foodItems;
-                renderFood();
-                renderPeople();
+                renderFood(); renderPeople();
                 showStatus('Food deleted');
-            } catch (error) {
+            } catch {
                 showStatus('Failed to delete food', true);
             }
         }
 
-        async function assignFood(personName, foodName, quantity = 1) {
+        async function assignFood(personName, foodName) {
+            const food = foodItems.find(f => f.name === foodName);
+            if (!food || food.quantity === 0) return showStatus('Not enough food available', true);
             try {
-                const person = people.find(p => p.name === personName);
-                const food = foodItems.find(f => f.name === foodName);
-                
-                if (!person || !food) return;
-                
-                if (food.quantity < quantity) {
-                    showStatus('Not enough food available', true);
-                    return;
-                }
-                
-                const result = await apiCall('/api/order', {
-                    method: 'POST',
-                    body: JSON.stringify({ personName, foodName })
-                });
-                
+                const result = await apiCall('/api/order', { method: 'POST', body: JSON.stringify({ personName, foodName }) });
                 people = result.data.people;
                 foodItems = result.data.foodItems;
-                renderFood();
-                renderPeople();
+                renderFood(); renderPeople();
                 showStatus(`${foodName} assigned to ${personName}`);
-            } catch (error) {
+            } catch {
                 showStatus('Failed to assign food', true);
             }
         }
 
+        // Now deletes the entire order entry for that person
         async function removeOrder(personName, foodName) {
             try {
+                // Find quantity to remove
                 const person = people.find(p => p.name === personName);
-                
-                if (!person || !person.orders[foodName]) return;
-                
+                const qty = person.orders[foodName] || 0;
+                if (qty === 0) return;
                 const result = await apiCall('/api/order', {
                     method: 'DELETE',
-                    body: JSON.stringify({ personName, foodName })
+                    body: JSON.stringify({ personName, foodName, quantity: qty })
                 });
-                
                 people = result.data.people;
                 foodItems = result.data.foodItems;
-                renderFood();
-                renderPeople();
+                renderFood(); renderPeople();
                 showStatus('Order removed');
-            } catch (error) {
+            } catch {
                 showStatus('Failed to remove order', true);
             }
         }
 
         async function toggleComplete(personName) {
             try {
-                const result = await apiCall(`/api/people/${encodeURIComponent(personName)}/complete`, {
-                    method: 'PATCH'
-                });
-                
+                const result = await apiCall(`/api/people/${encodeURIComponent(personName)}/complete`, { method: 'PATCH' });
                 people = result.data.people;
                 foodItems = result.data.foodItems;
-                const person = people.find(p => p.name === personName);
                 renderPeople();
-                showStatus(person.completed ? 'Order completed' : 'Order reopened');
-            } catch (error) {
+                showStatus(people.find(p => p.name === personName).completed ? 'Order completed' : 'Order reopened');
+            } catch {
                 showStatus('Failed to update status', true);
             }
         }
 
         function renderFood() {
-            const foodList = document.getElementById('foodList');
-            
-            if (foodItems.length === 0) {
-                foodList.innerHTML = '<div class="empty-state">No food items available</div>';
-                return;
-            }
-            
-            foodList.innerHTML = foodItems.map(food => `
-                <div class="food-item ${food.quantity === 0 ? 'out-of-stock' : ''}" 
-                     draggable="${food.quantity > 0}" 
-                     data-food="${food.name}"
-                     ondragstart="startDrag(event)"
-                     ondragend="endDrag(event)">
+            const list = document.getElementById('foodList');
+            if (!foodItems.length) return list.innerHTML = '<div class="empty-state">No food items available</div>';
+            list.innerHTML = foodItems.map(f => `
+                <div class="food-item ${f.quantity===0?'out-of-stock':''}" draggable="${f.quantity>0}" data-food="${f.name}" ondragstart="startDrag(event)" ondragend="endDrag(event)">
                     <div class="food-item-content">
-                        <div class="food-name">${food.name}</div>
-                        <div class="food-quantity">${food.quantity}</div>
+                        <div class="food-name">${f.name}</div>
+                        <div class="food-quantity">${f.quantity}</div>
                     </div>
                     <div class="food-item-actions">
-                        <button class="delete-food-btn" onclick="deleteFood('${food.name}')" title="Delete food">
-                            ×
-                        </button>
+                        <button class="delete-food-btn" onclick="deleteFood('${f.name}')">×</button>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
         }
 
         function renderPeople() {
-            const peopleGrid = document.getElementById('peopleGrid');
-            
-            if (people.length === 0) {
-                peopleGrid.innerHTML = '<div class="empty-state">No people added yet</div>';
-                return;
-            }
-            
-            peopleGrid.innerHTML = people.map(person => `
-                <div class="person-card ${person.completed ? 'completed' : ''}"
-                     data-person="${person.name}"
-                     ondrop="drop(event)"
-                     ondragover="allowDrop(event)"
-                     ondragenter="dragEnter(event)"
-                     ondragleave="dragLeave(event)">
+            const grid = document.getElementById('peopleGrid');
+            if (!people.length) return grid.innerHTML = '<div class="empty-state">No people added yet</div>';
+            grid.innerHTML = people.map(person => {
+                const orders = person.orders;
+                const orderHtml = Object.keys(orders).length === 0
+                    ? '<div class="empty-state">No orders yet - drag food here</div>'
+                    : Object.entries(orders).map(([name, qty]) => `
+                        <div class="order-item">
+                            <span>${name}</span>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="order-quantity">${qty}</span>
+                                <button class="remove-btn" onclick="removeOrder('${person.name}','${name}')">×</button>
+                            </div>
+                        </div>`).join('');
+                return `
+                <div class="person-card ${person.completed?'completed':''}" data-person="${person.name}" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
                     <div class="person-name">${person.name}</div>
-                    <div class="person-orders">
-                        ${Object.keys(person.orders).length === 0 ? 
-                            '<div class="empty-state">No orders yet - drag food here</div>' :
-                            Object.entries(person.orders).map(([foodName, quantity]) => `
-                                <div class="order-item">
-                                    <span>${foodName}</span>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span class="order-quantity">${quantity}</span>
-                                        <button class="remove-btn" onclick="removeOrder('${person.name}', '${foodName}')" title="Remove order">×</button>
-                                    </div>
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-                    <button class="complete-btn ${person.completed ? 'completed' : ''}" 
-                            onclick="toggleComplete('${person.name}')">
-                        ${person.completed ? 'Reopen Order' : 'Complete Order'}
-                    </button>
-                </div>
-            `).join('');
+                    <div class="person-orders">${orderHtml}</div>
+                    <button class="complete-btn ${person.completed?'completed':''}" onclick="toggleComplete('${person.name}')">${person.completed?'Reopen Order':'Complete Order'}</button>
+                </div>`;
+            }).join('');
         }
 
-        // Drag and drop functions
-        function startDrag(event) {
-            const foodName = event.target.dataset.food;
-            const food = foodItems.find(f => f.name === foodName);
-            
-            if (!food || food.quantity === 0) {
-                event.preventDefault();
-                return;
-            }
-            
-            draggedFood = foodName;
-            event.target.classList.add('dragging');
-            event.dataTransfer.setData('text/plain', foodName);
-        }
+        function startDrag(e) { if (e.target.dataset.food) { draggedFood = e.target.dataset.food; e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', draggedFood); }}
+        function endDrag(e) { e.target.classList.remove('dragging'); draggedFood=null; }
+        function allowDrop(e) { e.preventDefault(); }
+        function dragEnter(e) { if (draggedFood) e.currentTarget.classList.add('drag-over'); }
+        function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        function drop(e) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); const p = e.currentTarget.dataset.person; const f = e.dataTransfer.getData('text/plain')||draggedFood; if (p && f) assignFood(p,f); }
 
-        function endDrag(event) {
-            event.target.classList.remove('dragging');
-            draggedFood = null;
-        }
+        function showStatus(msg, err=false) { const s=document.getElementById('status'); s.textContent=msg; s.className=`status ${err?'error':''} show`; setTimeout(()=>s.classList.remove('show'),3000); }
 
-        function allowDrop(event) {
-            event.preventDefault();
-        }
-
-        function dragEnter(event) {
-            event.preventDefault();
-            if (draggedFood) {
-                event.currentTarget.classList.add('drag-over');
-            }
-        }
-
-        function dragLeave(event) {
-            if (!event.currentTarget.contains(event.relatedTarget)) {
-                event.currentTarget.classList.remove('drag-over');
-            }
-        }
-
-        function drop(event) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('drag-over');
-            
-            const personName = event.currentTarget.dataset.person;
-            const foodName = event.dataTransfer.getData('text/plain') || draggedFood;
-            
-            if (foodName && personName) {
-                assignFood(personName, foodName, 1);
-            }
-        }
-
-        function showStatus(message, isError = false) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${isError ? 'error' : ''} show`;
-            
-            setTimeout(() => {
-                status.classList.remove('show');
-            }, 3000);
-        }
-
-        // Keyboard event handlers
-        document.getElementById('personName').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                addPerson();
-            }
-        });
-
-        document.getElementById('foodName').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                addFood();
-            }
-        });
-
-        document.getElementById('foodQuantity').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                addFood();
-            }
-        });
-
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-        });
+        document.getElementById('personName').addEventListener('keypress', e=>{ if(e.key==='Enter') addPerson(); });
+        document.getElementById('foodName').addEventListener('keypress', e=>{ if(e.key==='Enter') addFood(); });
+        document.getElementById('foodQuantity').addEventListener('keypress', e=>{ if(e.key==='Enter') addFood(); });
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
