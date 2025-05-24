@@ -534,8 +534,29 @@
         }
 
         // Deletes the entire person and their orders
-        async function removePerson(personName) {
-            if (!confirm(`Delete ${personName} and all their orders?`)) return;
+        // Deletes the entire person and restores their orders to the food list, all client‑side
+async function removePerson(personName) {
+    if (!confirm(`Delete ${personName} and all their orders?`)) return;
+    // Find the person to remove
+    const personIndex = people.findIndex(p => p.name === personName);
+    if (personIndex === -1) {
+        showStatus('Person not found', true);
+        return;
+    }
+    const person = people[personIndex];
+    // Restore quantities of their orders back to foodItems
+    for (const [foodName, qty] of Object.entries(person.orders)) {
+        const food = foodItems.find(f => f.name === foodName);
+        if (food) {
+            food.quantity += qty;
+        }
+    }
+    // Remove person locally
+    people.splice(personIndex, 1);
+    renderFood();
+    renderPeople();
+    showStatus('Person removed');
+} and all their orders?`)) return;
             try {
                 const result = await apiCall(`/api/people/${encodeURIComponent(personName)}`, { method: 'DELETE' });
                 people = result.data.people;
