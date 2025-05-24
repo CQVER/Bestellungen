@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Food Ordering System</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 20px;
+                padding: 30px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            }
+
+            h1 {
+                text-align: center;
+                color: #2c3e50;
+                margin-bottom: 30px;
+                font-size: 2.5em;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .section {
+                margin-bottom: 30px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 15px;
+                border-left: 5px solid #3498db;
+            }
+
+            .section h2 {
+                color: #2c3e50;
+                margin-bottom: 15px;
+                font-size: 1.5em;
+            }
+
+            .input-group {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
+                align-items: center;
+            }
+
+            input[type="text"],
+            input[type="number"] {
+                padding: 12px;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                font-size: 16px;
+                transition: border-color 0.3s ease;
+            }
+
+            input[type="text"]:focus,
+            input[type="number"]:focus {
+                outline: none;
+                border-color: #3498db;
+            }
+
+            input[type="text"] {
+                flex: 1;
+            }
+
+            input[type="number"] {
+                width: 80px;
+            }
+
+            button {
+                padding: 12px 20px;
+                background: linear-gradient(45deg, #3498db, #2980b9);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                transition: transform 0.2s ease;
+            }
+
+            button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+            }
+
+            .main-content {
+                display: grid;
+                grid-template-columns: 1fr 2fr;
+                gap: 30px;
+                margin-top: 20px;
+            }
+
+            .food-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                max-height: 400px;
+                overflow-y: auto;
+                padding-right: 10px;
+            }
+
+            .food-list::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .food-list::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            .food-list::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            .food-list::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+            .food-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px;
+                background: linear-gradient(45deg, #e74c3c, #c0392b);
+                color: white;
+                border-radius: 10px;
+                cursor: grab;
+                user-select: none;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .food-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+            }
+
+            .food-item:active {
+                cursor: grabbing;
+            }
+
+            .food-item.dragging {
+                opacity: 0.5;
+                transform: rotate(5deg);
+            }
+
+            .food-item.out-of-stock {
+                background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+                cursor: not-allowed;
+            }
+
+            .food-item.out-of-stock:hover {
+                transform: none;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .food-name {
+                font-weight: bold;
+                font-size: 18px;
+            }
+
+            .food-quantity {
+                background: rgba(255, 255, 255, 0.2);
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-weight: bold;
+                min-width: 40px;
+                text-align: center;
+            }
+
+            .people-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                max-height: 500px;
+                overflow-y: auto;
+                padding-right: 10px;
+            }
+
+            .people-grid::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .people-grid::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            .people-grid::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            .people-grid::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+            .person-card {
+                background: #fff;
+                border-radius: 15px;
+                padding: 20px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                border: 3px dashed #ddd;
+                transition: all 0.3s ease;
+                min-height: 200px;
+            }
+
+            .person-card.drag-over {
+                border-color: #3498db;
+                background: #e8f4fd;
+                transform: scale(1.02);
+            }
+
+            .person-card.completed {
+                background: #f8f9fa;
+                opacity: 0.7;
+                border-color: #95a5a6;
+            }
+
+            .person-card.completed .person-name {
+                color: #7f8c8d;
+                text-decoration: line-through;
+            }
+
+            .person-card.completed .order-item {
+                background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            }
+
+            .complete-btn {
+                background: linear-gradient(45deg, #27ae60, #2ecc71);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                margin-top: 10px;
+                transition: all 0.3s ease;
+            }
+
+            .complete-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+            }
+
+            .complete-btn.completed {
+                background: linear-gradient(45deg, #f39c12, #e67e22);
+                cursor: pointer;
+            }
+
+            .complete-btn.completed:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+            }
+
+            .person-name {
+                color: #2c3e50;
+                font-size: 1.4em;
+                font-weight: bold;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #ecf0f1;
+            }
+
+            .person-orders {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .order-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                background: linear-gradient(45deg, #27ae60, #2ecc71);
+                color: white;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+
+            .order-quantity {
+                background: rgba(255, 255, 255, 0.2);
+                padding: 3px 8px;
+                border-radius: 15px;
+                min-width: 25px;
+                text-align: center;
+            }
+
+            .remove-btn {
+                background: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 25px;
+                height: 25px;
+                cursor: pointer;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.3s ease;
+            }
+
+            .remove-btn:hover {
+                background: #c0392b;
+                transform: none;
+                box-shadow: none;
+            }
+
+            .empty-state {
+                color: #7f8c8d;
+                font-style: italic;
+                text-align: center;
+                padding: 20px;
+            }
+
+            @media (max-width: 768px) {
+                .main-content {
+                    grid-template-columns: 1fr;
+                }
+
+                .input-group {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .people-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🍕 Bestellungen</h1>
+
+            <div class="section">
+                <h2>Add People</h2>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="personName"
+                        placeholder="Enter person's name"
+                    />
+                    <button onclick="addPerson()">Add Person</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Add Food Items</h2>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="foodName"
+                        placeholder="Enter food name"
+                    />
+                    <input
+                        type="number"
+                        id="foodQuantity"
+                        placeholder="Qty"
+                        min="1"
+                        value="1"
+                    />
+                    <button onclick="addFood()">Add Food</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="section">
+                    <h2>Available Food</h2>
+                    <div id="foodList" class="food-list">
+                        <div class="empty-state">No food items added yet</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>People & Orders</h2>
+                    <div id="peopleGrid" class="people-grid">
+                        <div class="empty-state">No people added yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let people = [];
+            let foodItems = [];
+            let draggedFood = null;
+
+            function addPerson() {
+                const nameInput = document.getElementById("personName");
+                const name = nameInput.value.trim();
+
+                if (name && !people.find((p) => p.name === name)) {
+                    people.unshift({
+                        name: name,
+                        orders: {},
+                        completed: false,
+                    });
+                    nameInput.value = "";
+                    renderPeople();
+                }
+            }
+
+            function addFood() {
+                const nameInput = document.getElementById("foodName");
+                const quantityInput = document.getElementById("foodQuantity");
+                const name = nameInput.value.trim();
+                const quantity = parseInt(quantityInput.value);
+
+                if (name && quantity > 0) {
+                    const existingFood = foodItems.find((f) => f.name === name);
+                    if (existingFood) {
+                        existingFood.quantity += quantity;
+                    } else {
+                        foodItems.push({
+                            name: name,
+                            quantity: quantity,
+                        });
+                    }
+                    nameInput.value = "";
+                    quantityInput.value = "1";
+                    renderFood();
+                }
+            }
+
+            function renderFood() {
+                const foodList = document.getElementById("foodList");
+
+                if (foodItems.length === 0) {
+                    foodList.innerHTML =
+                        '<div class="empty-state">No food items added yet</div>';
+                    return;
+                }
+
+                foodList.innerHTML = foodItems
+                    .map(
+                        (food) => `
+                <div class="food-item ${food.quantity === 0 ? "out-of-stock" : ""}" 
+                     draggable="${food.quantity > 0}" 
+                     data-food="${food.name}">
+                    <span class="food-name">${food.name}</span>
+                    <span class="food-quantity">${food.quantity}</span>
+                </div>
+            `,
+                    )
+                    .join("");
+
+                // Add drag event listeners
+                document.querySelectorAll(".food-item").forEach((item) => {
+                    item.addEventListener("dragstart", handleDragStart);
+                    item.addEventListener("dragend", handleDragEnd);
+                });
+            }
+
+            function renderPeople() {
+                const peopleGrid = document.getElementById("peopleGrid");
+
+                if (people.length === 0) {
+                    peopleGrid.innerHTML =
+                        '<div class="empty-state">No people added yet</div>';
+                    return;
+                }
+
+                // Sort people: incomplete orders first, completed orders at the bottom
+                const sortedPeople = [...people].sort((a, b) => {
+                    if (a.completed && !b.completed) return 1;
+                    if (!a.completed && b.completed) return -1;
+                    return 0;
+                });
+
+                peopleGrid.innerHTML = sortedPeople
+                    .map(
+                        (person) => `
+                <div class="person-card ${person.completed ? "completed" : ""}" data-person="${person.name}">
+                    <div class="person-name">${person.name}</div>
+                    <div class="person-orders">
+                        ${
+                            Object.keys(person.orders).length === 0
+                                ? '<div class="empty-state">No orders yet</div>'
+                                : Object.entries(person.orders)
+                                      .map(
+                                          ([food, quantity]) => `
+                                <div class="order-item">
+                                    <span>${food}</span>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span class="order-quantity">${quantity}</span>
+                                        ${!person.completed ? `<button class="remove-btn" onclick="removeOrder('${person.name}', '${food}')">×</button>` : ""}
+                                    </div>
+                                </div>
+                            `,
+                                      )
+                                      .join("")
+                        }
+                        ${
+                            Object.keys(person.orders).length > 0
+                                ? `
+                            <button class="complete-btn ${person.completed ? "completed" : ""}" 
+                                    onclick="toggleOrderComplete('${person.name}')">
+                                ${person.completed ? "↶ Undo Complete" : "Complete Order"}
+                            </button>
+                        `
+                                : ""
+                        }
+                    </div>
+                </div>
+            `,
+                    )
+                    .join("");
+
+                // Add drop event listeners only to non-completed cards
+                document
+                    .querySelectorAll(".person-card:not(.completed)")
+                    .forEach((card) => {
+                        card.addEventListener("dragover", handleDragOver);
+                        card.addEventListener("drop", handleDrop);
+                        card.addEventListener("dragenter", handleDragEnter);
+                        card.addEventListener("dragleave", handleDragLeave);
+                    });
+            }
+
+            function handleDragStart(e) {
+                const foodName = e.target.dataset.food;
+                const food = foodItems.find((f) => f.name === foodName);
+
+                if (food && food.quantity > 0) {
+                    draggedFood = foodName;
+                    e.target.classList.add("dragging");
+                } else {
+                    e.preventDefault();
+                }
+            }
+
+            function handleDragEnd(e) {
+                e.target.classList.remove("dragging");
+                draggedFood = null;
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+            }
+
+            function handleDragEnter(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add("drag-over");
+            }
+
+            function handleDragLeave(e) {
+                if (!e.currentTarget.contains(e.relatedTarget)) {
+                    e.currentTarget.classList.remove("drag-over");
+                }
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove("drag-over");
+
+                if (!draggedFood) return;
+
+                const personName = e.currentTarget.dataset.person;
+                const person = people.find((p) => p.name === personName);
+                const food = foodItems.find((f) => f.name === draggedFood);
+
+                if (person && food && food.quantity > 0) {
+                    // Add to person's order
+                    if (person.orders[draggedFood]) {
+                        person.orders[draggedFood]++;
+                    } else {
+                        person.orders[draggedFood] = 1;
+                    }
+
+                    // Decrease food quantity
+                    food.quantity--;
+
+                    // Re-render both sections
+                    renderFood();
+                    renderPeople();
+                }
+            }
+
+            function removeOrder(personName, foodName) {
+                const person = people.find((p) => p.name === personName);
+                const food = foodItems.find((f) => f.name === foodName);
+
+                if (person && person.orders[foodName] && food) {
+                    // Return one item to stock
+                    food.quantity++;
+
+                    // Remove from order
+                    person.orders[foodName]--;
+                    if (person.orders[foodName] === 0) {
+                        delete person.orders[foodName];
+                    }
+
+                    // Re-render both sections
+                    renderFood();
+                    renderPeople();
+                }
+            }
+
+            function toggleOrderComplete(personName) {
+                const person = people.find((p) => p.name === personName);
+                if (person) {
+                    person.completed = !person.completed;
+                    renderPeople();
+                }
+            }
+
+            // Allow Enter key to add items
+            document
+                .getElementById("personName")
+                .addEventListener("keypress", function (e) {
+                    if (e.key === "Enter") addPerson();
+                });
+
+            document
+                .getElementById("foodName")
+                .addEventListener("keypress", function (e) {
+                    if (e.key === "Enter") addFood();
+                });
+
+            document
+                .getElementById("foodQuantity")
+                .addEventListener("keypress", function (e) {
+                    if (e.key === "Enter") addFood();
+                });
+        </script>
+    </body>
+</html>
+
