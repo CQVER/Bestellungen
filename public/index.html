@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Ordering System</title>
     <style>
-       * {
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -248,6 +248,7 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             border: 3px dashed #ddd;
             transition: all 0.3s ease;
+            position: relative;
             min-height: 200px;
         }
 
@@ -272,47 +273,43 @@
             background: linear-gradient(45deg, #95a5a6, #7f8c8d);
         }
 
-        .complete-btn {
-            background: linear-gradient(45deg, #27ae60, #2ecc71);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            margin-top: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .complete-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
-        }
-
-        .complete-btn.completed {
-            background: linear-gradient(45deg, #f39c12, #e67e22);
-            cursor: pointer;
-        }
-
-        .complete-btn.completed:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+        .person-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }
 
         .person-name {
             color: #2c3e50;
             font-size: 1.4em;
             font-weight: bold;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .delete-person-btn {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .delete-person-btn:hover {
+            background: #e74c3c;
         }
 
         .person-orders {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            margin-top: 10px;
         }
 
         .order-item {
@@ -346,13 +343,32 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.3s ease;
         }
 
         .remove-btn:hover {
             background: #c0392b;
-            transform: none;
-            box-shadow: none;
+        }
+
+        .complete-btn {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .complete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .complete-btn.completed {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
         }
 
         .empty-state {
@@ -388,12 +404,12 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
+
             .input-group {
                 flex-direction: column;
                 align-items: stretch;
             }
-            
+
             .people-grid {
                 grid-template-columns: 1fr;
             }
@@ -517,6 +533,20 @@
             }
         }
 
+        // Deletes the entire person and their orders
+        async function removePerson(personName) {
+            if (!confirm(`Delete ${personName} and all their orders?`)) return;
+            try {
+                const result = await apiCall(`/api/people/${encodeURIComponent(personName)}`, { method: 'DELETE' });
+                people = result.data.people;
+                foodItems = result.data.foodItems;
+                renderFood(); renderPeople();
+                showStatus('Person removed');
+            } catch {
+                showStatus('Failed to remove person', true);
+            }
+        }
+
         async function assignFood(personName, foodName) {
             const food = foodItems.find(f => f.name === foodName);
             if (!food || food.quantity === 0) return showStatus('Not enough food available', true);
@@ -531,17 +561,12 @@
             }
         }
 
-        // Now deletes the entire order entry for that person
         async function removeOrder(personName, foodName) {
             try {
-                // Find quantity to remove
                 const person = people.find(p => p.name === personName);
                 const qty = person.orders[foodName] || 0;
-                if (qty === 0) return;
-                const result = await apiCall('/api/order', {
-                    method: 'DELETE',
-                    body: JSON.stringify({ personName, foodName, quantity: qty })
-                });
+                if (!qty) return;
+                const result = await apiCall('/api/order', { method: 'DELETE', body: JSON.stringify({ personName, foodName, quantity: qty }) });
                 people = result.data.people;
                 foodItems = result.data.foodItems;
                 renderFood(); renderPeople();
@@ -572,33 +597,36 @@
                         <div class="food-name">${f.name}</div>
                         <div class="food-quantity">${f.quantity}</div>
                     </div>
-                    <div class="food-item-actions">
-                        <button class="delete-food-btn" onclick="deleteFood('${f.name}')">×</button>
-                    </div>
-                </div>`).join('');
+                    <button class="delete-food-btn" onclick="deleteFood('${f.name}')" title="Delete food">×</button>
+                </div>
+            `).join('');
         }
 
         function renderPeople() {
             const grid = document.getElementById('peopleGrid');
             if (!people.length) return grid.innerHTML = '<div class="empty-state">No people added yet</div>';
             grid.innerHTML = people.map(person => {
-                const orders = person.orders;
-                const orderHtml = Object.keys(orders).length === 0
-                    ? '<div class="empty-state">No orders yet - drag food here</div>'
-                    : Object.entries(orders).map(([name, qty]) => `
-                        <div class="order-item">
-                            <span>${name}</span>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span class="order-quantity">${qty}</span>
-                                <button class="remove-btn" onclick="removeOrder('${person.name}','${name}')">×</button>
-                            </div>
-                        </div>`).join('');
+                const orders = Object.entries(person.orders);
+                const orderHtml = orders.length ? orders.map(([name, qty]) => `
+                    <div class="order-item">
+                        <span>${name}</span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="order-quantity">${qty}</span>
+                            <button class="remove-btn" onclick="removeOrder('${person.name}','${name}')" title="Remove order">×</button>
+                        </div>
+                    </div>
+                `).join('') : '<div class="empty-state">No orders yet - drag food here</div>';
+
                 return `
                 <div class="person-card ${person.completed?'completed':''}" data-person="${person.name}" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
-                    <div class="person-name">${person.name}</div>
+                    <div class="person-header">
+                        <div class="person-name">${person.name}</div>
+                        <button class="delete-person-btn" onclick="removePerson('${person.name}')" title="Remove person">×</button>
+                    </div>
                     <div class="person-orders">${orderHtml}</div>
                     <button class="complete-btn ${person.completed?'completed':''}" onclick="toggleComplete('${person.name}')">${person.completed?'Reopen Order':'Complete Order'}</button>
-                </div>`;
+                </div>
+                `;
             }).join('');
         }
 
